@@ -1,22 +1,24 @@
-import { initializeApp } from "firebase/app";
+﻿import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDlrJYHWCVDuqJiShwN498bVekmIr8l0p0",
-  authDomain: "sports-connect-9545a.firebaseapp.com",
-  databaseURL:
-    "https://sports-connect-9545a-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "sports-connect-9545a",
-  storageBucket: "sports-connect-9545a.firebasestorage.app",
-  messagingSenderId: "800572148320",
-  appId: "1:800572148320:web:c9012b40af7b4b49019105",
-  measurementId: "G-N7M0YCEZ1G",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+export const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId,
+);
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+export const auth = app ? getAuth(app) : null;
+export const db = app ? getFirestore(app) : null;
+export const storage = app ? getStorage(app) : null;
 
 export default app;

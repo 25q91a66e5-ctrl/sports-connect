@@ -1,148 +1,23 @@
 import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { db } from "./firebase";
 import "./ProfileSetup.css";
 
-function ProfileSetup({ onComplete }) {
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [sport, setSport] = useState("");
-  const [location, setLocation] = useState("");
-  const [bio, setBio] = useState("");
+function ProfileSetup({ user, onComplete }) {
+  const [form, setForm] = useState({ name: "", username: "", sport: "", location: "", bio: "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!auth.currentUser) {
-      setMessage("User is not logged in.");
-      return;
-    }
-
-    setSaving(true);
-    setMessage("");
-
+  const update = (field) => (event) => setForm({ ...form, [field]: event.target.value });
+  const submit = async (event) => {
+    event.preventDefault(); setSaving(true); setMessage("");
     try {
-      const userId = auth.currentUser.uid;
-
-      await setDoc(doc(db, "users", userId), {
-        name,
-        username,
-        sport,
-        location,
-        bio,
-        email: auth.currentUser.email,
-        createdAt: new Date(),
-      });
-
-      setMessage("Profile created successfully!");
-
-      setTimeout(() => {
-        onComplete();
-      }, 700);
-    } catch (error) {
-      console.error(error);
-      setMessage("Could not save profile.");
-    } finally {
-      setSaving(false);
-    }
+      const profile = { ...form, username: form.username.replace(/^@+/, ""), email: user.email || "", profileImageUrl: user.photoURL || "", achievements: [], profileComplete: true, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+      await setDoc(doc(db, "users", user.uid), profile, { merge: true });
+      onComplete({ ...profile, username: `@${profile.username}` });
+    } catch { setMessage("We could not save your profile. Please check your connection and try again."); } finally { setSaving(false); }
   };
-
-  return (
-    <div className="profile-setup-page">
-
-      <div className="profile-setup-card">
-
-        <div className="setup-icon">
-          🏆
-        </div>
-
-        <h1>Create Your Sports Profile</h1>
-
-        <p>
-          Tell us about yourself and your sporting journey.
-        </p>
-
-        <form onSubmit={handleSubmit}>
-
-          <label>Full Name</label>
-
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-
-          <label>Username</label>
-
-          <input
-            type="text"
-            placeholder="@yourusername"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-
-          <label>Sport</label>
-
-          <select
-            value={sport}
-            onChange={(e) => setSport(e.target.value)}
-            required
-          >
-            <option value="">Select your sport</option>
-            <option value="Boxing">🥊 Boxing</option>
-            <option value="Badminton">🏸 Badminton</option>
-            <option value="Athletics">🏃 Athletics</option>
-            <option value="Karate">🥋 Karate</option>
-            <option value="Swimming">🏊 Swimming</option>
-            <option value="Football">⚽ Football</option>
-            <option value="Archery">🏹 Archery</option>
-            <option value="Wrestling">🤼 Wrestling</option>
-            <option value="Other">🏆 Other</option>
-          </select>
-
-          <label>Location</label>
-
-          <input
-            type="text"
-            placeholder="City, State"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            required
-          />
-
-          <label>Bio</label>
-
-          <textarea
-            placeholder="Tell us about your sports journey..."
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows="4"
-          />
-
-          <button
-            type="submit"
-            disabled={saving}
-          >
-            {saving ? "Saving..." : "Create Profile"}
-          </button>
-
-        </form>
-
-        {message && (
-          <p className="setup-message">
-            {message}
-          </p>
-        )}
-
-      </div>
-
-    </div>
-  );
+  return <div className="profile-setup-page"><div className="profile-setup-card"><div className="setup-icon">S</div><h1>Create your sports profile</h1><p>Tell the community a little about your sporting journey.</p>
+    <form onSubmit={submit}><label>Full name</label><input value={form.name} onChange={update("name")} placeholder="Your name" required /><label>Username</label><input value={form.username} onChange={update("username")} placeholder="yourusername" required /><label>Sport</label><select value={form.sport} onChange={update("sport")} required><option value="">Select your sport</option>{["Athletics", "Badminton", "Basketball", "Boxing", "Football", "Swimming", "Other"].map((sport) => <option key={sport}>{sport}</option>)}</select><label>Location</label><input value={form.location} onChange={update("location")} placeholder="City, State" required /><label>Bio</label><textarea value={form.bio} onChange={update("bio")} placeholder="What are you working towards?" rows="4" /><button type="submit" disabled={saving}>{saving ? "Saving…" : "Complete profile"}</button></form>
+    {message && <p className="setup-message" role="alert">{message}</p>}</div></div>;
 }
-
 export default ProfileSetup;
